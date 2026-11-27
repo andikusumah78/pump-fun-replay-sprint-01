@@ -9,6 +9,10 @@
 // front: take profit, a trailing stop once the position is ahead, a hard stop
 // below cost, a fade exit when the tape turns into net selling, a big-sell
 // exit when one wallet dumps hard, and a time stop for stale positions.
+// Entries are deliberately tight (strong inflow, several buyers, capped
+// run-up) and exits quick (small hard stop, early trailing stop), because
+// the dev window showed wide entries and slow exits bleed on this tape:
+// the first version lost half the bank at a 17% win rate.
 //
 // Guardrail backstop: the run must round-trip at least 0.01 SOL on 20 coins.
 // If momentum entries are scarce once the window is well under way, the bot
@@ -27,12 +31,12 @@ const SOL = LAMPORTS_PER_SOL;
 // ---- entry signal -------------------------------------------------------
 const WINDOW = 60; // slots of tape the entry signal looks at
 const MIN_AGE = 20; // slots since CreateEvent before an entry is allowed
-const MIN_NET_SOL = (SOL * 50n) / 100n; // >= 0.50 SOL net inflow over the window
-const MIN_BUYS = 4; // buy trades in the window
-const MIN_BUYERS = 4; // distinct buying wallets in the window
+const MIN_NET_SOL = (SOL * 75n) / 100n; // >= 0.75 SOL net inflow over the window
+const MIN_BUYS = 5; // buy trades in the window
+const MIN_BUYERS = 5; // distinct buying wallets in the window
 const MIN_UP_NUM = 106n; // price up at least 6% over the window ...
 const MIN_UP_DEN = 100n;
-const MAX_UP_NUM = 220n; // ... but no more than +120% (already parabolic)
+const MAX_UP_NUM = 140n; // ... but no more than +40% (past that the top is usually in)
 const MAX_UP_DEN = 100n;
 const NEAR_HIGH_NUM = 98n; // price now at least 98% of the window high ...
 const NEAR_HIGH_DEN = 100n;
@@ -42,28 +46,28 @@ const MIN_REAL_SOL = SOL * 5n; // curve real SOL at entry: liquid enough ...
 const MAX_REAL_SOL = SOL * 85n; // ... but not already at completion
 
 // ---- sizing ---------------------------------------------------------------
-const FIRST_BUY = (SOL * 25n) / 100n; // 0.25 SOL first buy
-const ADD_BUY = (SOL * 15n) / 100n; // 0.15 SOL per pyramid add
-const MAX_PER_COIN = (SOL * 55n) / 100n; // 0.55 SOL total per coin
+const FIRST_BUY = (SOL * 15n) / 100n; // 0.15 SOL first buy
+const ADD_BUY = (SOL * 10n) / 100n; // 0.10 SOL per pyramid add
+const MAX_PER_COIN = (SOL * 35n) / 100n; // 0.35 SOL total per coin
 const MIN_BUY = (SOL * 5n) / 100n; // never send a buy smaller than 0.05 SOL
-const MAX_EXPOSURE = (SOL * 350n) / 100n; // 3.50 SOL at cost across positions
+const MAX_EXPOSURE = (SOL * 200n) / 100n; // 2.00 SOL at cost across positions
 const BUY_SLIP_BPS = 2000;
 const SELL_SLIP_BPS = 10000;
 
 // ---- exits ----------------------------------------------------------------
-const TP_NUM = 130n; // take profit at +30% over cost
+const TP_NUM = 120n; // take profit at +20% over cost
 const TP_DEN = 100n;
-const TRAIL_ARM_NUM = 112n; // trailing stop arms once value is +12% over cost
+const TRAIL_ARM_NUM = 108n; // trailing stop arms once value is +8% over cost
 const TRAIL_ARM_DEN = 100n;
-const TRAIL_DROP_NUM = 88n; // ... then sell if value falls 12% below its peak
+const TRAIL_DROP_NUM = 92n; // ... then sell if value falls 8% below its peak
 const TRAIL_DROP_DEN = 100n;
-const STOP_NUM = 82n; // hard stop at -18% under cost
+const STOP_NUM = 90n; // hard stop at -10% under cost
 const STOP_DEN = 100n;
-const MAX_HOLD = 5000; // slots held before the time stop applies
+const MAX_HOLD = 2500; // slots held before the time stop applies
 const TIME_EXIT_BELOW_NUM = 105n; // time stop only while under +5%
 const TIME_EXIT_BELOW_DEN = 100n;
 const FADE_WINDOW = 20; // slots for the fade check
-const FADE_NET = -SOL; // exit when net SOL over the fade window < -1 SOL
+const FADE_NET = -(SOL / 2n); // exit when net SOL over the fade window < -0.5 SOL
 const BIG_SELL = SOL * 2n; // exit on any single recorded sell >= 2 SOL
 
 // ---- re-entry ---------------------------------------------------------------

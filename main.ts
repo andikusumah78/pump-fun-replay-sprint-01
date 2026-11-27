@@ -31,12 +31,12 @@ const SOL = LAMPORTS_PER_SOL;
 // ---- entry signal -------------------------------------------------------
 const WINDOW = 60; // slots of tape the entry signal looks at
 const MIN_AGE = 20; // slots since CreateEvent before an entry is allowed
-const MIN_NET_SOL = (SOL * 75n) / 100n; // >= 0.75 SOL net inflow over the window
-const MIN_BUYS = 5; // buy trades in the window
-const MIN_BUYERS = 5; // distinct buying wallets in the window
+const MIN_NET_SOL = SOL; // >= 1.00 SOL net inflow over the window
+const MIN_BUYS = 6; // buy trades in the window
+const MIN_BUYERS = 6; // distinct buying wallets in the window
 const MIN_UP_NUM = 106n; // price up at least 6% over the window ...
 const MIN_UP_DEN = 100n;
-const MAX_UP_NUM = 140n; // ... but no more than +40% (past that the top is usually in)
+const MAX_UP_NUM = 130n; // ... but no more than +30% (past that the top is usually in)
 const MAX_UP_DEN = 100n;
 const NEAR_HIGH_NUM = 98n; // price now at least 98% of the window high ...
 const NEAR_HIGH_DEN = 100n;
@@ -77,7 +77,7 @@ const MAX_ENTRIES_PER_MINT = 2;
 // ---- guardrail probes -------------------------------------------------------
 const PROBE_SOL = (SOL * 5n) / 100n; // 0.05 SOL probe buy
 const PROBE_MIN_BUY = (SOL * 2n) / 100n; // probes may go as small as 0.02 SOL
-const PROBE_MAX = 30; // at most 30 probe buys in the run
+const PROBE_MAX = 10; // at most 10 probe buys in the run
 const PROBE_AFTER_SLOTS = 60000; // start probing only once this far into the run
 const ROUND_TRIP_MIN = 10_000_000n; // 0.01 SOL buy counts as a round trip
 

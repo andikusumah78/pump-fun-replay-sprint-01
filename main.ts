@@ -273,18 +273,20 @@ function onBatch(state: BotState, batch: Batch): OrderInput[] {
     }
   }
 
-  // Position opens / closes.
+  // Position opens / closes. state.positions is a Map<mint, Holding>, so
+  // iterate its entries: a plain `for (const p of state.positions)` would
+  // hand us [mint, holding] pairs and p.token_amount would be undefined.
   const nowHeld = new Set<Pubkey>();
-  for (const p of state.positions) {
-    nowHeld.add(p.mint);
-    const existing = held.get(p.mint);
+  for (const [mint, h] of state.positions) {
+    nowHeld.add(mint);
+    const existing = held.get(mint);
     if (existing === undefined) {
-      const curve = state.curves.get(p.mint);
-      const c = coins.get(p.mint);
-      const tokens = BigInt(p.token_amount);
+      const curve = state.curves.get(mint);
+      const c = coins.get(mint);
+      const tokens = h.token_amount;
       const value =
         curve !== undefined ? positionValue(tokens, curve.virtual_quote_reserves, curve.virtual_token_reserves) : 0n;
-      held.set(p.mint, {
+      held.set(mint, {
         peak: value,
         openSlot: slot,
         lastBuyNum: curve !== undefined ? curve.virtual_quote_reserves : 0n,
@@ -310,19 +312,18 @@ function onBatch(state: BotState, batch: Batch): OrderInput[] {
   const txFee = state.txFeeLamports();
   const exposure = (): bigint => {
     let sum = 0n;
-    for (const p of state.positions) sum += BigInt(p.cost_lamports);
+    for (const h of state.positions.values()) sum += h.cost_lamports;
     return sum;
   };
 
   // ---- exits ---------------------------------------------------------------
-  for (const p of state.positions) {
-    const mint = p.mint;
+  for (const [mint, h] of state.positions) {
     const pos = held.get(mint);
     const curve = state.curves.get(mint);
     if (pos === undefined || curve === undefined || curve.complete) continue;
-    const tokens = BigInt(p.token_amount);
+    const tokens = h.token_amount;
     if (tokens === 0n) continue;
-    const cost = BigInt(p.cost_lamports);
+    const cost = h.cost_lamports;
     const value = positionValue(tokens, curve.virtual_quote_reserves, curve.virtual_token_reserves);
     if (value > pos.peak) pos.peak = value;
 
@@ -381,13 +382,12 @@ function onBatch(state: BotState, batch: Batch): OrderInput[] {
   for (const o of sells) selling.add(o.mint);
 
   // ---- pyramid adds ---------------------------------------------------------
-  for (const p of state.positions) {
-    const mint = p.mint;
+  for (const [mint, h] of state.positions) {
     const pos = held.get(mint);
     const curve = state.curves.get(mint);
     if (pos === undefined || pos.probe || curve === undefined || curve.complete) continue;
     if (selling.has(mint)) continue;
-    const cost = BigInt(p.cost_lamports);
+    const cost = h.cost_lamports;
     if (cost >= MAX_PER_COIN) continue;
     // Only add while the price is above the last buy's decision price.
     if (
